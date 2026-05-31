@@ -35,22 +35,48 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.activate = activate;
 exports.deactivate = deactivate;
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 const vscode = __importStar(require("vscode"));
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
 function activate(context) {
-    // The command has been defined in the package.json file
-    // Now provide the implementation of the command with registerCommand
-    // The commandId parameter must match the command field in package.json
-    const disposable = vscode.commands.registerCommand('co/delensai.helloWorld', () => {
-        // The code you place here will be executed every time your command is executed
-        // Display a message box to the user
-        vscode.window.showInformationMessage('Hello World from CodeLensAI!');
+    const disposable = vscode.commands.registerCommand('codelensai.debugProject', async () => {
+        // Get all files from workspace
+        const files = await vscode.workspace.findFiles('**/*.{js,ts,jsx,tsx}', '**/node_modules/**');
+        const issues = [];
+        for (const file of files) {
+            try {
+                // Read file content
+                const document = await vscode.workspace.openTextDocument(file);
+                const content = document.getText();
+                // Simple debugging checks
+                if (content.includes('console.log')) {
+                    issues.push(`⚠ Console log found: ${file.fsPath}`);
+                }
+                if (content.includes('any')) {
+                    issues.push(`⚠ any type used: ${file.fsPath}`);
+                }
+                if (content.includes('TODO')) {
+                    issues.push(`⚠ TODO found: ${file.fsPath}`);
+                }
+            }
+            catch (error) {
+                // Error reading file
+            }
+        }
+        // Show result
+        if (issues.length === 0) {
+            vscode.window.showInformationMessage('✅ No issues found in project');
+        }
+        else {
+            const outputChannel = vscode.window.createOutputChannel('CodeLensAI Debugger');
+            outputChannel.clear();
+            outputChannel.show(true);
+            outputChannel.appendLine('=== CodeLensAI Debug Report ===\n');
+            issues.forEach(issue => {
+                outputChannel.appendLine(issue);
+            });
+            vscode.window.showWarningMessage(`Debug completed with ${issues.length} issues`);
+        }
     });
     context.subscriptions.push(disposable);
 }
-// This method is called when your extension is deactivated
 function deactivate() { }
 //# sourceMappingURL=extension.js.map

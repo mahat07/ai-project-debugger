@@ -13,10 +13,10 @@
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
-      {
-        "command": "codelensai.helloWorld",
-        "title": "Hello World"
-      }
+       {
+      "command": "codelensai.debugProject",
+      "title": "CodeLensAI: Debug Project"
+    }
     ]
   },
   "scripts": {
