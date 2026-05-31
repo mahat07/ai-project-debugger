@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { analyzeCode } from './geminiService';
 
 export function activate(context: vscode.ExtensionContext) {
 
@@ -6,63 +7,56 @@ export function activate(context: vscode.ExtensionContext) {
 		'codelensai.debugProject',
 		async () => {
 
-			// Get all files from workspace
 			const files = await vscode.workspace.findFiles(
 				'**/*.{js,ts,jsx,tsx}',
 				'**/node_modules/**'
 			);
 
-			const issues: string[] = [];
+			const outputChannel =
+				vscode.window.createOutputChannel('CodeLensAI Debugger');
+
+			outputChannel.clear();
+			outputChannel.show(true);
+
+			outputChannel.appendLine('=== AI Debug Report ===\n');
 
 			for (const file of files) {
 
 				try {
 
-					// Read file content
-					const document = await vscode.workspace.openTextDocument(file);
+					const document =
+						await vscode.workspace.openTextDocument(file);
+
 					const content = document.getText();
 
-					// Simple debugging checks
-					if (content.includes('console.log')) {
-						issues.push(`⚠ Console log found: ${file.fsPath}`);
+					// Skip very large files
+					if (content.length > 15000) {
+						continue;
 					}
 
-					if (content.includes('any')) {
-						issues.push(`⚠ any type used: ${file.fsPath}`);
-					}
+					outputChannel.appendLine(
+						`\nAnalyzing: ${file.fsPath}\n`
+					);
 
-					if (content.includes('TODO')) {
-						issues.push(`⚠ TODO found: ${file.fsPath}`);
-					}
+					// Gemini AI analysis
+					const aiResponse = await analyzeCode(content);
+
+					outputChannel.appendLine(aiResponse);
+					outputChannel.appendLine(
+						'\n---------------------------------\n'
+					);
 
 				} catch (error) {
-					// Error reading file
+
+					outputChannel.appendLine(
+						`Error analyzing file: ${file.fsPath}`
+					);
 				}
 			}
 
-			// Show result
-			if (issues.length === 0) {
-				vscode.window.showInformationMessage(
-					'✅ No issues found in project'
-				);
-			} else {
-
-				const outputChannel =
-					vscode.window.createOutputChannel('CodeLensAI Debugger');
-
-				outputChannel.clear();
-				outputChannel.show(true);
-
-				outputChannel.appendLine('=== CodeLensAI Debug Report ===\n');
-
-				issues.forEach(issue => {
-					outputChannel.appendLine(issue);
-				});
-
-				vscode.window.showWarningMessage(
-					`Debug completed with ${issues.length} issues`
-				);
-			}
+			vscode.window.showInformationMessage(
+				'AI debugging completed'
+			);
 		}
 	);
 
